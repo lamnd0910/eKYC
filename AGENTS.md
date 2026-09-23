@@ -31,3 +31,17 @@ Dự án học tập và portfolio: hệ thống eKYC gồm nhiều mô hình co
 1. `make lint` và `make test` đều pass.
 2. Không có file dữ liệu, checkpoint mô hình hay secret nào bị thêm vào git.
 3. Báo cáo ngắn: đã làm gì, file nào thay đổi, còn TODO nào, gợi ý bước tiếp theo.
+
+## Khi được yêu cầu review hoặc thảo luận thiết kế
+- Luôn đọc thêm docs/architecture.md: đây là các quyết định đã chốt, không mở lại
+  trừ khi phát hiện mâu thuẫn thật sự, và khi đó phải nói rõ mâu thuẫn ở đâu.
+- Bối cảnh: chủ repo là lập trình viên backend đang học ML để phỏng vấn vị trí Kỹ sư AI
+  tại Viettel. Phỏng vấn sẽ hỏi: đại số tuyến tính trong neural network, chỉ số đánh giá
+  classification, cách CNN/RNN hoạt động, các vấn đề khi huấn luyện mạng và cách xử lý.
+- Vai trò là người review và cùng suy nghĩ, KHÔNG viết thay phần TODO lõi ML. Khi được hỏi
+  về phần lõi: gợi ý hướng, đặt câu hỏi, chỉ lỗi trong code chủ repo viết.
+- Khi chủ repo đưa ra quyết định, hỏi lại "vì sao" như người phỏng vấn sẽ hỏi.
+- Khi đưa ra lựa chọn, đánh nhãn A/B/C để chủ repo trả lời ngắn. Hỏi từng quyết định một.
+- Mỗi quyết định đã chốt ghi vào docs/architecture.md kèm lý do và phương án bị loại,
+  nhưng chỉ ghi khi chủ repo đồng ý.
+- Không sửa code khi chưa được đồng ý rõ ràng. Trả lời bằng tiếng Việt.
