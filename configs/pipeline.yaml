@@ -1,0 +1,6 @@
+face_match:
+  manual_review_low: 0.55
+  manual_review_high: 0.75
+ocr_confidence:
+  manual_review_low: 0.70
+  manual_review_high: 0.90

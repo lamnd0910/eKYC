@@ -1,0 +1,9 @@
+service:
+  name: ekyc
+  version: "0.1.0"
+model_versions:
+  detection: TODO
+  quality: TODO
+  antispoof: TODO
+  ocr: TODO
+  face: TODO

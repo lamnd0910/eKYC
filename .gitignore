@@ -1,0 +1,35 @@
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Private data and model artifacts
+data/raw/
+data/interim/
+data/processed/
+models/*
+!models/README.md
+checkpoints/
+*.ckpt
+*.pth
+*.pt
+*.onnx
+
+# Secrets and notebook products
+.env
+.env.*
+!.env.example
+notebooks/.ipynb_checkpoints/
+*.ipynb_checkpoints
+*.nbconvert.ipynb
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
