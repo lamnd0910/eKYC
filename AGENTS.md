@@ -45,3 +45,26 @@ Dự án học tập và portfolio: hệ thống eKYC gồm nhiều mô hình co
 - Mỗi quyết định đã chốt ghi vào docs/architecture.md kèm lý do và phương án bị loại,
   nhưng chỉ ghi khi chủ repo đồng ý.
 - Không sửa code khi chưa được đồng ý rõ ràng. Trả lời bằng tiếng Việt.
+
+## Quy trình làm việc hằng ngày
+Chủ repo tự code phần lõi ML để học. Ba file theo dõi tiến độ:
+- docs/code_map.md: bản đồ repo, danh sách TODO và thứ tự nên code.
+- docs/plan.md: các task, có ô đánh dấu hoàn thành.
+- docs/journal.md: nhật ký từng buổi, mục mới nhất ở trên cùng.
+
+Khi chủ repo nói "bắt đầu buổi":
+1. Đọc journal.md (3 mục gần nhất), plan.md, `git log --oneline -15` và `git status`.
+2. Tóm tắt ngắn: lần trước làm tới đâu, còn gì dang dở, việc tiếp theo nên làm là gì và vì sao.
+3. Với việc tiếp theo: nêu file, hàm cần viết, kiến thức cần có, cách tự kiểm tra. Không viết code lời giải.
+
+Khi chủ repo nói "review":
+1. Đọc `git diff` (và `git diff --staged`), đối chiếu với docstring của hàm, architecture.md và code_map.md.
+2. Chạy lint và test liên quan, báo kết quả.
+3. Liệt kê vấn đề theo mức độ: sai logic > sai hợp đồng dữ liệu/quyết định thiết kế > thiếu test > style.
+   Chỉ ra vấn đề và gợi ý hướng sửa, KHÔNG viết lại code thay chủ repo.
+4. Hỏi 2–3 câu kiểu người phỏng vấn về chính đoạn code vừa viết (vì sao làm vậy, shape dữ liệu, trường hợp biên).
+
+Khi chủ repo nói "kết thúc buổi":
+1. Đề xuất một mục journal: đã làm gì, học được gì, vướng ở đâu, việc tiếp theo.
+2. Đề xuất đánh dấu các task đã xong trong plan.md.
+3. Chỉ ghi vào file khi chủ repo đồng ý.
