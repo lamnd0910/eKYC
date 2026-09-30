@@ -35,6 +35,7 @@ class PipelineSettings(BaseModel):
 
     face_match: UncertaintyRange
     ocr_confidence: UncertaintyRange
+    required_stages: list[str] = Field(min_length=1)
 
 
 class ServiceSettings(BaseModel):
@@ -53,6 +54,9 @@ class AppSettings(BaseModel):
 
     service: ServiceSettings
     model_versions: dict[str, str]
+    max_file_bytes: int = Field(gt=0)
+    max_pixels: int = Field(gt=0)
+    allowed_formats: list[str] = Field(min_length=1)
 
 
 def load_yaml(path: Path) -> dict[str, Any]:

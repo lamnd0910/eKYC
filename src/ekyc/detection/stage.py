@@ -1,5 +1,6 @@
 """Document-detection stage contract."""
 
+from ekyc.common.reasons import ReasonCode
 from ekyc.common.types import PipelineContext, StageResult
 
 
@@ -7,13 +8,25 @@ class DocumentDetectionStage:
     """Locate and rectify the ID document.
 
     Input: ``ctx.id_front`` is BGR uint8 with shape ``(H, W, 3)``.
-    Output: a ``StageResult`` whose data should contain rectified BGR image
-    ``(H2, W2, 3)`` and four document corners. A future implementation can use
+    Output: a ``StageResult`` and ``ctx.rectified_document`` BGR uint8 image
+    ``(H2, W2, 3)`` with four document corners in internal data. It can use
     a corner detector followed by OpenCV perspective transformation.
     """
 
     name = "detection"
+    implemented = False
 
     def run(self, ctx: PipelineContext) -> StageResult:
-        """Run document localization and perspective normalization."""
+        """Return an explicit pending result until ``_evaluate`` is implemented.
+
+        TODO: Call ``_evaluate(ctx)`` when the ML work is complete.
+        """
+        return StageResult(self.name, "NOT_EVALUATED", "blocking", [ReasonCode.STAGE_NOT_EVALUATED])
+
+    def _evaluate(self, ctx: PipelineContext) -> StageResult:
+        """Rectify BGR uint8 ``ctx.id_front`` (H,W,3) into (H2,W2,3).
+
+        Set ``ctx.rectified_document`` and return corners and detection scores;
+        report FAILED only when no document can be located.
+        """
         raise NotImplementedError("TODO: implement document corner detection and rectification")

@@ -2,42 +2,63 @@
 
 from __future__ import annotations
 
+import logging
+import math
 from collections.abc import Iterable
 from dataclasses import replace
 from time import perf_counter
 
 from ekyc.common.config import PipelineSettings
-from ekyc.common.types import Decision, PipelineContext, Stage, StageResult
+from ekyc.common.reasons import ReasonCode
+from ekyc.common.types import Decision, DecisionStatus, PipelineContext, Stage, StageResult
+
+logger = logging.getLogger(__name__)
+
+
+class StageExecutionError(Exception):
+    """Unexpected failure within a named verification stage."""
+
+    def __init__(self, stage_name: str) -> None:
+        self.stage_name = stage_name
+        super().__init__(stage_name)
 
 
 class EkycPipeline:
     """Run configured stages in order and apply model-independent policy.
 
-    A failed blocking stage ends execution immediately. Warning failures are
-    preserved in the response, while OCR and face uncertainty ranges are
-    evaluated only after all required stages have completed.
+    A blocking FAILED stage ends execution immediately. Other outcomes are
+    accumulated before completeness and score rules are applied.
     """
 
     def __init__(self, stages: Iterable[Stage], settings: PipelineSettings) -> None:
         self._stages = tuple(stages)
         self._settings = settings
 
+    @property
+    def not_evaluated_stages(self) -> list[str]:
+        """Report known stubs without processing an image."""
+        return [stage.name for stage in self._stages if not getattr(stage, "implemented", True)]
+
     def verify(self, ctx: PipelineContext) -> Decision:
         """Execute stages, measure latency, and construct the final decision."""
         started_at = perf_counter()
-        reasons: list[str] = []
+        reasons: list[ReasonCode] = []
 
         for stage in self._stages:
             stage_started_at = perf_counter()
-            result = stage.run(ctx)
+            try:
+                result = stage.run(ctx)
+                if result.name != stage.name:
+                    raise ValueError("Stage result name does not match its stage")
+            except Exception as exc:
+                logger.error("Stage %s raised %s", stage.name, type(exc).__name__)
+                raise StageExecutionError(stage.name) from exc
             latency_ms = (perf_counter() - stage_started_at) * 1000
-            if result.name != stage.name:
-                raise ValueError(f"Stage '{stage.name}' returned a result named '{result.name}'")
             measured_result = replace(result, latency_ms=latency_ms)
             ctx.stage_results[stage.name] = measured_result
             reasons.extend(measured_result.reasons)
 
-            if not measured_result.passed and measured_result.severity == "blocking":
+            if measured_result.outcome == "FAILED" and measured_result.severity == "blocking":
                 return Decision(
                     status="REJECT",
                     reasons=reasons,
@@ -56,29 +77,37 @@ class EkycPipeline:
             total_latency_ms=(perf_counter() - started_at) * 1000,
         )
 
-    def _decide(self, results: dict[str, StageResult]) -> tuple[str, list[str]]:
-        """Apply score-based manual-review rules from the typed configuration."""
-        review_reasons: list[str] = []
-        face_score = self._find_score(results, "face_match")
-        if face_score is not None and self._settings.face_match.contains(face_score):
-            review_reasons.append("face match score requires manual review")
+    def _decide(self, results: dict[str, StageResult]) -> tuple[DecisionStatus, list[ReasonCode]]:
+        """Require complete checks and scores before allowing acceptance."""
+        review_reasons: list[ReasonCode] = []
+        if any(result.outcome == "NOT_EVALUATED" for result in results.values()):
+            review_reasons.append(ReasonCode.STAGE_NOT_EVALUATED)
+        if any(name not in results for name in self._settings.required_stages):
+            review_reasons.append(ReasonCode.REQUIRED_STAGE_MISSING)
+        if any(result.outcome == "FAILED" for result in results.values()):
+            review_reasons.append(ReasonCode.STAGE_FAILED)
 
-        ocr_score = self._find_score(results, "ocr_confidence")
-        if ocr_score is not None and self._settings.ocr_confidence.contains(ocr_score):
-            review_reasons.append("OCR confidence requires manual review")
+        for stage_name, score_name, threshold, uncertain_reason in (
+            ("face", "face_match", self._settings.face_match, ReasonCode.FACE_MATCH_UNCERTAIN),
+            (
+                "ocr",
+                "ocr_confidence",
+                self._settings.ocr_confidence,
+                ReasonCode.OCR_CONFIDENCE_UNCERTAIN,
+            ),
+        ):
+            result = results.get(stage_name)
+            if result is None or result.outcome != "PASSED":
+                continue
+            score = result.scores.get(score_name)
+            if score is None or not math.isfinite(score):
+                review_reasons.append(ReasonCode.REQUIRED_SCORE_MISSING)
+            elif threshold.contains(score):
+                review_reasons.append(uncertain_reason)
 
         if review_reasons:
-            return "MANUAL_REVIEW", review_reasons
+            return "MANUAL_REVIEW", list(dict.fromkeys(review_reasons))
         return "ACCEPT", []
-
-    @staticmethod
-    def _find_score(results: dict[str, StageResult], score_name: str) -> float | None:
-        """Return a named score from the first stage that supplies it."""
-        for result in results.values():
-            score = result.scores.get(score_name)
-            if score is not None:
-                return score
-        return None
 
     @staticmethod
     def _extract_fields(results: dict[str, StageResult]) -> dict[str, object]:

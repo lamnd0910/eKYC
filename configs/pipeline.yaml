@@ -4,3 +4,4 @@ face_match:
 ocr_confidence:
   manual_review_low: 0.70
   manual_review_high: 0.90
+required_stages: [detection, quality, antispoof, ocr, face]

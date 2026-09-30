@@ -1,5 +1,6 @@
 """Face-matching stage contract."""
 
+from ekyc.common.reasons import ReasonCode
 from ekyc.common.types import PipelineContext, StageResult
 
 
@@ -13,7 +14,19 @@ class FaceMatchingStage:
     """
 
     name = "face"
+    implemented = False
 
     def run(self, ctx: PipelineContext) -> StageResult:
-        """Detect, embed, and compare faces from document and selfie."""
+        """Return an explicit pending result until ``_evaluate`` is implemented.
+
+        TODO: Call ``_evaluate(ctx)`` when the ML work is complete.
+        """
+        return StageResult(self.name, "NOT_EVALUATED", "blocking", [ReasonCode.STAGE_NOT_EVALUATED])
+
+    def _evaluate(self, ctx: PipelineContext) -> StageResult:
+        """Detect BGR uint8 faces (H,W,3), then compare (1,3,112,112) tensors.
+
+        Set ``ctx.document_face`` and ``ctx.selfie_face`` and return similarity;
+        report FAILED only if a required face cannot be found.
+        """
         raise NotImplementedError("TODO: implement face detection and matching")

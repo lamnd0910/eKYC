@@ -13,6 +13,8 @@ def test_load_project_yaml_configuration() -> None:
     assert app_settings.service.name == "ekyc"
     assert pipeline_settings.face_match.contains(0.60)
     assert not pipeline_settings.face_match.contains(0.80)
+    assert pipeline_settings.required_stages == ["detection", "quality", "antispoof", "ocr", "face"]
+    assert app_settings.max_pixels > 0
 
 
 def test_uncertainty_range_requires_ordered_thresholds() -> None:
@@ -21,5 +23,6 @@ def test_uncertainty_range_requires_ordered_thresholds() -> None:
             {
                 "face_match": {"manual_review_low": 0.8, "manual_review_high": 0.7},
                 "ocr_confidence": {"manual_review_low": 0.7, "manual_review_high": 0.9},
+                "required_stages": ["detection", "quality", "antispoof", "ocr", "face"],
             }
         )

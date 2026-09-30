@@ -118,3 +118,12 @@ Không trường hợp lỗi nào được dẫn tới ACCEPT.
 **Chốt:** Stage chưa được cài đặt hoặc chưa có mô hình trả trạng thái `NOT_EVALUATED` tường minh, không trả điểm giả. Pipeline gặp bất kỳ stage `NOT_EVALUATED` nào thì kết quả tốt nhất có thể là MANUAL_REVIEW, với mã `STAGE_NOT_EVALUATED`. REJECT từ stage khác vẫn được ưu tiên.
 **Lý do:** Phát hiện khi review lát cắt xuyên suốt: nếu stage trung tính không trả điểm, logic hiện tại có thể trả ACCEPT, vi phạm nguyên tắc không fail-open. Hệ quả chấp nhận được: trong giai đoạn lát cắt, mọi request hợp lệ sẽ ra MANUAL_REVIEW, và đó là câu trả lời trung thực.
 **Test bắt buộc:** Mọi tổ hợp có ít nhất một stage `NOT_EVALUATED` không bao giờ ra ACCEPT.
+
+## D15 — Điểm dưới ngưỡng dưới
+**Chốt:** Face match dưới `manual_review_low` → REJECT với mã `FACE_MISMATCH`. OCR confidence dưới `manual_review_low` → MANUAL_REVIEW với mã `OCR_CONFIDENCE_LOW`. Quy tắc đầy đủ cho mỗi điểm: `< low` / `[low, high)` / `>= high`.
+**Lý do:** Phát hiện khi review: `_decide` chỉ kiểm tra điểm có nằm trong khoảng không chắc chắn, nên điểm dưới ngưỡng dưới rơi thẳng xuống ACCEPT (`face_match=0.05 → ACCEPT`), vi phạm nguyên tắc không fail-open. Hai tín hiệu có bản chất khác nhau (nhất quán với D5): điểm face thấp là bằng chứng dương tính rằng đây là hai người khác nhau; OCR confidence thấp chỉ là thiếu bằng chứng, do mô hình đọc kém chứ không chứng minh gian lận.
+**Phương án bị loại:**
+- Cả hai → REJECT: từ chối nhầm người thật chỉ vì ảnh chụp khó đọc; biến lỗi mô hình thành lỗi của người dùng.
+- Cả hai → MANUAL_REVIEW: đẩy các ca rõ ràng là khác người vào duyệt tay, lãng phí nguồn lực duyệt và làm yếu vai trò của ngưỡng FAR (D5).
+**Ghi chú:** REJECT do điểm face được pipeline áp sau khi tất cả stage chạy xong, không phải stage tự đặt FAILED (D6). REJECT được ưu tiên hơn MANUAL_REVIEW khi cả hai cùng xảy ra.
+**Test bắt buộc:** Điểm dưới ngưỡng dưới, đúng bằng `low`, và đúng bằng `high` cho cả face và OCR.

@@ -6,18 +6,30 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from ekyc.common.reasons import REASON_MESSAGES, ReasonCode
 from ekyc.common.types import Decision, StageResult
+
+
+class ReasonResponse(BaseModel):
+    """Stable code and non-sensitive explanation."""
+
+    code: ReasonCode
+    message: str
+
+    @classmethod
+    def from_code(cls, code: ReasonCode) -> ReasonResponse:
+        """Describe a reason without embedding request values."""
+        return cls(code=code, message=REASON_MESSAGES[code])
 
 
 class StageResultResponse(BaseModel):
     """JSON-safe representation of an individual stage result."""
 
     name: str
-    passed: bool
+    outcome: Literal["PASSED", "FAILED", "NOT_EVALUATED"]
     severity: Literal["blocking", "warning"]
-    reasons: list[str]
+    reasons: list[ReasonResponse]
     scores: dict[str, float]
-    data: dict[str, Any]
     latency_ms: float
 
     @classmethod
@@ -25,11 +37,10 @@ class StageResultResponse(BaseModel):
         """Map a domain result to its response schema."""
         return cls(
             name=result.name,
-            passed=result.passed,
+            outcome=result.outcome,
             severity=result.severity,
-            reasons=result.reasons,
+            reasons=[ReasonResponse.from_code(code) for code in result.reasons],
             scores=result.scores,
-            data=result.data,
             latency_ms=result.latency_ms,
         )
 
@@ -38,7 +49,7 @@ class DecisionResponse(BaseModel):
     """Public decision returned by ``POST /v1/verify``."""
 
     status: Literal["ACCEPT", "REJECT", "MANUAL_REVIEW"]
-    reasons: list[str]
+    reasons: list[ReasonResponse]
     fields: dict[str, Any]
     stage_results: list[StageResultResponse]
     total_latency_ms: float = Field(ge=0.0)
@@ -48,7 +59,7 @@ class DecisionResponse(BaseModel):
         """Map a pipeline decision to the API contract."""
         return cls(
             status=decision.status,
-            reasons=decision.reasons,
+            reasons=[ReasonResponse.from_code(code) for code in decision.reasons],
             fields=decision.fields,
             stage_results=[
                 StageResultResponse.from_domain(item) for item in decision.stage_results
@@ -60,6 +71,7 @@ class DecisionResponse(BaseModel):
 class HealthResponse(BaseModel):
     """Liveness information and versions of configured models."""
 
-    status: Literal["ok"]
+    status: Literal["ok", "not_ready"]
     service_version: str
     model_versions: dict[str, str]
+    not_evaluated_stages: list[str]
