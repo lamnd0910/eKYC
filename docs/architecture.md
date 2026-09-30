@@ -127,3 +127,11 @@ Không trường hợp lỗi nào được dẫn tới ACCEPT.
 - Cả hai → MANUAL_REVIEW: đẩy các ca rõ ràng là khác người vào duyệt tay, lãng phí nguồn lực duyệt và làm yếu vai trò của ngưỡng FAR (D5).
 **Ghi chú:** REJECT do điểm face được pipeline áp sau khi tất cả stage chạy xong, không phải stage tự đặt FAILED (D6). REJECT được ưu tiên hơn MANUAL_REVIEW khi cả hai cùng xảy ra.
 **Test bắt buộc:** Điểm dưới ngưỡng dưới, đúng bằng `low`, và đúng bằng `high` cho cả face và OCR.
+**Làm rõ (2026-09-30):** Face match thấp có thể do ảnh mờ hoặc mô hình yếu, nhưng chỉ nhìn điểm số thì không phân biệt được với "hai người khác nhau". Giữ nguyên D15; hai nguyên nhân kia được xử lý ở chỗ khác:
+- Ảnh mờ, lóa, tối là trách nhiệm của stage quality, phải bị chặn *trước* face matching với mã yêu cầu chụp lại.
+- Mô hình yếu được tính vào FRR tại ngưỡng chọn trên ROC (D5), không xử lý bằng ngoại lệ trong chính sách.
+Kết hợp "quality có cảnh báo + face dưới ngưỡng" vẫn ra REJECT.
+**Phương án bị loại khi làm rõ:**
+- Hạ FACE_MISMATCH xuống MANUAL_REVIEW khi quality có cảnh báo: tạo đường tấn công, kẻ giả mạo cố tình chụp mờ để biến REJECT thành MANUAL_REVIEW và đánh cược vào người duyệt tay.
+- Face thấp luôn MANUAL_REVIEW: làm mất ý nghĩa ngưỡng FAR, như đã loại ở trên.
+**Phụ thuộc mở:** Phương án này đòi hỏi quality có thể chặn (blocking). Việc ai quyết định `severity` hiện mâu thuẫn với D6 (stage đang hard-code `severity`), cần chốt ở quyết định riêng.
