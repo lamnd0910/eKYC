@@ -62,6 +62,7 @@ class Stage(Protocol):
     """Interface implemented by every sequential pipeline stage."""
 
     name: str
+    implemented: bool
 
     def run(self, ctx: PipelineContext) -> StageResult:
         """Run the stage using input and preceding stage results."""

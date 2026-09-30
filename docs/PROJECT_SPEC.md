@@ -34,11 +34,18 @@ Stage `FAILED` với severity `blocking` dẫn tới `REJECT` và dừng sớm. 
 
 ## Quy tắc quyết định
 1. Stage `FAILED` với severity `blocking` → `REJECT`, dừng sớm.
-2. Stage `NOT_EVALUATED`, stage bắt buộc thiếu, stage `FAILED` dạng warning, hoặc
+2. Sau khi mọi stage còn lại chạy xong, face match `< manual_review_low` →
+   `REJECT` với `FACE_MISMATCH`; quyết định này thắng mọi lý do duyệt tay.
+3. Stage `NOT_EVALUATED`, stage bắt buộc thiếu, stage `FAILED` dạng warning, hoặc
    stage OCR/face `PASSED` nhưng thiếu điểm bắt buộc → `MANUAL_REVIEW` tối đa.
-3. Điểm face match hay OCR confidence trong vùng không chắc chắn theo config →
-   `MANUAL_REVIEW`.
-4. Chỉ khi các kiểm tra bắt buộc hoàn tất và không có lý do duyệt tay → `ACCEPT`.
+4. OCR confidence `< manual_review_low` → `MANUAL_REVIEW` với
+   `OCR_CONFIDENCE_LOW`. Điểm face hoặc OCR trong `[manual_review_low,
+   manual_review_high)` → `MANUAL_REVIEW`.
+5. Điểm `>= manual_review_high` không tự sinh lý do. Khi không có lý do từ chối
+   hoặc duyệt tay và mọi kiểm tra bắt buộc hoàn tất → `ACCEPT`.
+
+Mỗi điểm được phân ba vùng: `< low`, `[low, high)`, `>= high`. Thứ tự ưu tiên
+cuối cùng là `REJECT > MANUAL_REVIEW > ACCEPT`; ngưỡng nằm trong config.
 
 Các stage bắt buộc được liệt kê trong `configs/pipeline.yaml`. Mã lý do và thông
 điệp không chứa điểm số hoặc dữ liệu cá nhân.
@@ -55,11 +62,25 @@ Các stage bắt buộc được liệt kê trong `configs/pipeline.yaml`. Mã l
   và danh sách stage stub `not_evaluated_stages`. Nạp pipeline lỗi khi khởi động
   thì dịch vụ không khởi động. Thông tin giấy tờ không được ghi vào log.
 
-## Cấu trúc thư mục
-`configs/` chứa cấu hình; `src/ekyc/` chứa stage, pipeline, API và common;
-`tests/` chứa kiểm thử; `data/` và `models/` bị gitignore. Không commit ảnh thật,
-checkpoint hoặc secret.
+## Cấu trúc thư mục mong muốn
+```
+ekyc/
+├── AGENTS.md  README.md  pyproject.toml  Makefile  Dockerfile  docker-compose.yml  .gitignore
+├── configs/            base.yaml, pipeline.yaml (ngưỡng), từng mô hình một file
+├── data/               README.md (mô tả nguồn dữ liệu); raw/ interim/ processed/ bị gitignore
+├── docs/               PROJECT_SPEC.md, architecture.md, experiments.md (nhật ký thí nghiệm)
+├── notebooks/          khám phá dữ liệu, đánh số 01_, 02_...
+├── src/ekyc/
+│   ├── common/         types.py, config.py, logging.py, image_io.py
+│   ├── detection/  quality/  antispoof/  ocr/  face/
+│   ├── pipeline.py
+│   └── api/            main.py, schemas.py, deps.py
+├── training/           script huấn luyện và đánh giá cho từng mô hình
+├── models/             checkpoint, bị gitignore
+├── tests/              unit/ cho từng stage, integration/ cho pipeline và API
+└── .github/workflows/ci.yml
+```
 
-## Chỉ số đánh giá dự kiến
-Toàn hệ thống: tỷ lệ chấp nhận nhầm, từ chối nhầm, chuyển duyệt tay, p50/p95.
-Stage: detection IoU, OCR accuracy theo trường, face ROC-AUC và FAR/FRR.
+## Chỉ số đánh giá (để sau này điền vào docs/experiments.md)
+- Toàn hệ thống: tỉ lệ chấp nhận nhầm, tỉ lệ từ chối nhầm, tỉ lệ chuyển duyệt tay, latency p50/p95.
+- Từng stage: detection IoU, OCR độ chính xác theo trường, face match ROC-AUC và FAR/FRR tại ngưỡng đã chọn.

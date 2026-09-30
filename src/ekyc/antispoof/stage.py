@@ -16,11 +16,15 @@ class AntiSpoofStage:
     implemented = False
 
     def run(self, ctx: PipelineContext) -> StageResult:
-        """Return an explicit pending result until ``_evaluate`` is implemented.
+        """Return pending until ML work is complete.
 
-        TODO: Call ``_evaluate(ctx)`` when the ML work is complete.
+        TODO: Set ``implemented`` to True after implementing ``_evaluate``.
         """
-        return StageResult(self.name, "NOT_EVALUATED", "warning", [ReasonCode.STAGE_NOT_EVALUATED])
+        if not self.implemented:
+            return StageResult(
+                self.name, "NOT_EVALUATED", "warning", [ReasonCode.STAGE_NOT_EVALUATED]
+            )
+        return self._evaluate(ctx)
 
     def _evaluate(self, ctx: PipelineContext) -> StageResult:
         """Score BGR uint8 selfie (H,W,3), possibly via tensor (1,3,H,W).

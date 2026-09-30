@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -9,8 +10,16 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+class ScoreZone(StrEnum):
+    """Position of a score relative to configured decision thresholds."""
+
+    BELOW = "BELOW"
+    UNCERTAIN = "UNCERTAIN"
+    ABOVE = "ABOVE"
+
+
 class UncertaintyRange(BaseModel):
-    """Exclusive lower/inclusive upper score range requiring human review."""
+    """Configured lower and upper bounds for a three-zone score policy."""
 
     model_config = ConfigDict(extra="forbid")
 
@@ -23,9 +32,17 @@ class UncertaintyRange(BaseModel):
             raise ValueError("manual_review_low must be less than manual_review_high")
         return self
 
+    def classify(self, score: float) -> ScoreZone:
+        """Classify a finite score into below, uncertain, or above range."""
+        if score < self.manual_review_low:
+            return ScoreZone.BELOW
+        if score < self.manual_review_high:
+            return ScoreZone.UNCERTAIN
+        return ScoreZone.ABOVE
+
     def contains(self, score: float) -> bool:
-        """Return whether score is within the manual-review interval."""
-        return self.manual_review_low <= score < self.manual_review_high
+        """Return whether score is uncertain (compatibility helper)."""
+        return self.classify(score) == ScoreZone.UNCERTAIN
 
 
 class PipelineSettings(BaseModel):

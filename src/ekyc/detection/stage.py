@@ -17,11 +17,15 @@ class DocumentDetectionStage:
     implemented = False
 
     def run(self, ctx: PipelineContext) -> StageResult:
-        """Return an explicit pending result until ``_evaluate`` is implemented.
+        """Return pending until ML work is complete.
 
-        TODO: Call ``_evaluate(ctx)`` when the ML work is complete.
+        TODO: Set ``implemented`` to True after implementing ``_evaluate``.
         """
-        return StageResult(self.name, "NOT_EVALUATED", "blocking", [ReasonCode.STAGE_NOT_EVALUATED])
+        if not self.implemented:
+            return StageResult(
+                self.name, "NOT_EVALUATED", "blocking", [ReasonCode.STAGE_NOT_EVALUATED]
+            )
+        return self._evaluate(ctx)
 
     def _evaluate(self, ctx: PipelineContext) -> StageResult:
         """Rectify BGR uint8 ``ctx.id_front`` (H,W,3) into (H2,W2,3).

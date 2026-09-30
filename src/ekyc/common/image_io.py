@@ -24,8 +24,6 @@ def decode_bgr_image(content: bytes, settings: AppSettings) -> np.ndarray:
     """Check encoded format and header dimensions before full BGR decoding."""
     if len(content) > settings.max_file_bytes:
         raise ImageInputError("FILE_TOO_LARGE", 413)
-    if not (content.startswith(b"\x89PNG\r\n\x1a\n") or content.startswith(b"\xff\xd8")):
-        raise ImageInputError("UNSUPPORTED_FORMAT")
     try:
         with Image.open(BytesIO(content)) as header:
             if header.format not in settings.allowed_formats:
