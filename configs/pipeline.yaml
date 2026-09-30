@@ -1,7 +1,9 @@
 face_match:
   manual_review_low: 0.55
   manual_review_high: 0.75
+  below_action: REJECT
 ocr_confidence:
   manual_review_low: 0.70
   manual_review_high: 0.90
+  below_action: MANUAL_REVIEW
 required_stages: [detection, quality, antispoof, ocr, face]

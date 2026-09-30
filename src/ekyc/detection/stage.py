@@ -1,6 +1,6 @@
 """Document-detection stage contract."""
 
-from ekyc.common.reasons import ReasonCode
+from ekyc.common.stage_results import not_evaluated_result
 from ekyc.common.types import PipelineContext, StageResult
 
 
@@ -22,9 +22,7 @@ class DocumentDetectionStage:
         TODO: Set ``implemented`` to True after implementing ``_evaluate``.
         """
         if not self.implemented:
-            return StageResult(
-                self.name, "NOT_EVALUATED", "blocking", [ReasonCode.STAGE_NOT_EVALUATED]
-            )
+            return not_evaluated_result(self.name, "blocking")
         return self._evaluate(ctx)
 
     def _evaluate(self, ctx: PipelineContext) -> StageResult:

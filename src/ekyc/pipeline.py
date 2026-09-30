@@ -115,7 +115,7 @@ class EkycPipeline:
             else:
                 zone = threshold.classify(score)
                 if zone == ScoreZone.BELOW:
-                    if stage_name == "face":
+                    if threshold.below_action == "REJECT":
                         reject_reasons.append(low_reason)
                     else:
                         review_reasons.append(low_reason)

@@ -36,6 +36,7 @@ Stage `FAILED` với severity `blocking` dẫn tới `REJECT` và dừng sớm. 
 1. Stage `FAILED` với severity `blocking` → `REJECT`, dừng sớm.
 2. Sau khi mọi stage còn lại chạy xong, face match `< manual_review_low` →
    `REJECT` với `FACE_MISMATCH`; quyết định này thắng mọi lý do duyệt tay.
+   Hành động cho vùng dưới ngưỡng đọc từ `below_action` trong `configs/pipeline.yaml`.
 3. Stage `NOT_EVALUATED`, stage bắt buộc thiếu, stage `FAILED` dạng warning, hoặc
    stage OCR/face `PASSED` nhưng thiếu điểm bắt buộc → `MANUAL_REVIEW` tối đa.
 4. OCR confidence `< manual_review_low` → `MANUAL_REVIEW` với

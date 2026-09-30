@@ -4,6 +4,7 @@ import struct
 import zlib
 from io import BytesIO
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -104,6 +105,25 @@ def test_health_is_not_ready_without_startup() -> None:
         "model_versions",
         "not_evaluated_stages",
     }
+
+
+def test_health_uses_pipeline_dependency_override_and_startup_readiness() -> None:
+    app.dependency_overrides[get_pipeline] = lambda: SimpleNamespace(
+        not_evaluated_stages=["injected_stage"]
+    )
+    try:
+        before_startup = TestClient(app).get("/health")
+        with TestClient(app) as client:
+            ready = client.get("/health")
+    finally:
+        app.dependency_overrides.clear()
+
+    assert before_startup.status_code == 503
+    assert before_startup.json()["status"] == "not_ready"
+    assert before_startup.json()["not_evaluated_stages"] == []
+    assert ready.status_code == 200
+    assert ready.json()["status"] == "ok"
+    assert ready.json()["not_evaluated_stages"] == ["injected_stage"]
 
 
 def _reencode(image: bytes, format_name: str) -> bytes:

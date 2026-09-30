@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -25,6 +25,7 @@ class UncertaintyRange(BaseModel):
 
     manual_review_low: float = Field(ge=0.0, le=1.0)
     manual_review_high: float = Field(ge=0.0, le=1.0)
+    below_action: Literal["REJECT", "MANUAL_REVIEW"]
 
     @model_validator(mode="after")
     def validate_order(self) -> UncertaintyRange:

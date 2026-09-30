@@ -9,7 +9,8 @@ import pytest
 from ekyc.antispoof.stage import AntiSpoofStage
 from ekyc.common.config import PipelineSettings, load_pipeline_settings
 from ekyc.common.reasons import ReasonCode
-from ekyc.common.types import PipelineContext, Stage, StageResult
+from ekyc.common.stage_results import not_evaluated_result
+from ekyc.common.types import PipelineContext, Severity, Stage, StageResult
 from ekyc.detection.stage import DocumentDetectionStage
 from ekyc.face.stage import FaceMatchingStage
 from ekyc.ocr.stage import OcrStage
@@ -44,9 +45,9 @@ def _context() -> PipelineContext:
 def _stage(name: str, outcome: str, severity: str = "warning") -> FakeStage:
     scores = {}
     if outcome == "PASSED" and name == "ocr":
-        scores = {"ocr_confidence": SETTINGS.ocr_confidence.manual_review_high}
+        scores = {"ocr_confidence": (SETTINGS.ocr_confidence.manual_review_high + 1.0) / 2}
     if outcome == "PASSED" and name == "face":
-        scores = {"face_match": SETTINGS.face_match.manual_review_high}
+        scores = {"face_match": (SETTINGS.face_match.manual_review_high + 1.0) / 2}
     reasons = [ReasonCode.STAGE_NOT_EVALUATED] if outcome == "NOT_EVALUATED" else []
     return FakeStage(StageResult(name, outcome, severity, reasons=reasons, scores=scores))
 
@@ -136,6 +137,48 @@ def test_face_mismatch_overrides_not_evaluated() -> None:
     assert ReasonCode.FACE_MISMATCH in decision.reasons
     assert ReasonCode.STAGE_NOT_EVALUATED in decision.reasons
     assert len(decision.reasons) == len(set(decision.reasons))
+
+
+def test_quality_warning_cannot_downgrade_face_mismatch_from_intentional_blur() -> None:
+    stages = [_stage(name, "PASSED") for name in STAGE_NAMES]
+    stages[1] = _stage("quality", "FAILED", "warning")
+    stages[-1].result.scores["face_match"] = _settings().face_match.manual_review_low / 2
+
+    decision = EkycPipeline(stages, _settings()).verify(_context())
+
+    assert decision.status == "REJECT"
+    assert ReasonCode.FACE_MISMATCH in decision.reasons
+    assert ReasonCode.STAGE_FAILED in decision.reasons
+    assert stages[-1].calls == 1
+
+
+def test_face_below_action_comes_from_settings() -> None:
+    settings = _settings().model_copy(
+        update={
+            "face_match": _settings().face_match.model_copy(
+                update={"below_action": "MANUAL_REVIEW"}
+            )
+        }
+    )
+    stages = [_stage(name, "PASSED") for name in STAGE_NAMES]
+    stages[-1].result.scores["face_match"] = settings.face_match.manual_review_low / 2
+
+    decision = EkycPipeline(stages, settings).verify(_context())
+
+    assert decision.status == "MANUAL_REVIEW"
+    assert decision.reasons == [ReasonCode.FACE_MISMATCH]
+
+
+@pytest.mark.parametrize("severity", ("blocking", "warning"))
+def test_shared_not_evaluated_result(severity: Severity) -> None:
+    result = not_evaluated_result("quality", severity)
+
+    assert result.name == "quality"
+    assert result.outcome == "NOT_EVALUATED"
+    assert result.severity == severity
+    assert result.reasons == [ReasonCode.STAGE_NOT_EVALUATED]
+    assert result.scores == {}
+    assert result.data == {}
 
 
 def test_low_ocr_with_good_face_requires_manual_review() -> None:

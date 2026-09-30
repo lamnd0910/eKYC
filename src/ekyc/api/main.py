@@ -45,6 +45,7 @@ def create_app() -> FastAPI:
     def health(
         request: Request,
         settings: AppSettings = Depends(get_app_settings),
+        pipeline: EkycPipeline = Depends(get_pipeline),
     ) -> JSONResponse:
         """Return service state and configured model versions."""
         ready = getattr(request.app.state, "pipeline_ready", False)
@@ -52,7 +53,7 @@ def create_app() -> FastAPI:
             status="ok" if ready else "not_ready",
             service_version=settings.service.version,
             model_versions=settings.model_versions,
-            not_evaluated_stages=get_pipeline().not_evaluated_stages if ready else [],
+            not_evaluated_stages=pipeline.not_evaluated_stages if ready else [],
         )
         return JSONResponse(status_code=200 if ready else 503, content=response.model_dump())
 
